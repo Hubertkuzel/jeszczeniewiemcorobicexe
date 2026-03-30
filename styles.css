@@ -263,6 +263,9 @@ button:hover {
   flex-direction: column;
   gap: 10px;
   padding-top: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 6px; /* miejsce na scrollbar */
 }
 
 .legendItem {
@@ -323,6 +326,10 @@ button:hover {
   .chartControls .chartModeLabel select {
     min-width: unset;
     width: 100%;
+  }
+
+  .chartLegend {
+    max-height: 260px;
   }
 }
 
