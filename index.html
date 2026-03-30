@@ -62,6 +62,24 @@
       </section>
 
       <section class="card">
+        <h2>Kategorie</h2>
+        <form id="categoryForm" class="form">
+          <div class="row">
+            <label>
+              Nowa kategoria
+              <input id="newCategoryInput" type="text" required placeholder="np. Jedzenie" />
+            </label>
+          </div>
+          <div class="actions">
+            <button type="submit">Dodaj kategorię</button>
+          </div>
+        </form>
+
+        <div id="categoryList" class="categoryList"></div>
+        <p id="categoriesEmptyState" class="emptyState">Brak kategorii. Dodaj pierwszą.</p>
+      </section>
+
+      <section class="card">
         <div class="toolbar">
           <label class="monthSelectLabel">
             Miesiąc

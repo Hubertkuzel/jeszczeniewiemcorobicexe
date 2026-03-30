@@ -192,6 +192,41 @@ button:hover {
   color: var(--muted);
 }
 
+.categoryList {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.categoryItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.categoryItem .categoryName {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.categoryItem .deleteCategoryBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--danger);
+  font-weight: 800;
+  padding: 2px 2px;
+}
+
+.categoryItem .deleteCategoryBtn:hover {
+  text-decoration: underline;
+}
+
 .iconBtn {
   border: none;
   background: transparent;

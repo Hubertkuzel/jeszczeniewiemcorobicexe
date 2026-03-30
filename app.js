@@ -1,4 +1,5 @@
 const STORAGE_KEY = "finance-tracker-transactions-v1";
+const STORAGE_KEY_CATEGORIES = "finance-tracker-categories-v1";
 const CURRENCY = "PLN";
 
 const typeInput = document.getElementById("typeInput");
@@ -12,6 +13,11 @@ const txBody = document.getElementById("txBody");
 const emptyState = document.getElementById("emptyState");
 const monthSelect = document.getElementById("monthSelect");
 const clearAllBtn = document.getElementById("clearAllBtn");
+
+const categoryForm = document.getElementById("categoryForm");
+const newCategoryInput = document.getElementById("newCategoryInput");
+const categoryListEl = document.getElementById("categoryList");
+const categoriesEmptyStateEl = document.getElementById("categoriesEmptyState");
 
 const incomeTotalEl = document.getElementById("incomeTotal");
 const expenseTotalEl = document.getElementById("expenseTotal");
@@ -70,6 +76,31 @@ function saveTransactions(transactions) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
 }
 
+function loadCategories() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    // Store unique non-empty strings (case-insensitive).
+    const normalizedMap = new Map();
+    for (const item of parsed) {
+      const name = String(item ?? "").trim();
+      if (!name) continue;
+      const key = name.toLowerCase();
+      if (!normalizedMap.has(key)) normalizedMap.set(key, name);
+    }
+    return Array.from(normalizedMap.values()).sort((a, b) => a.localeCompare(b, "pl"));
+  } catch {
+    return [];
+  }
+}
+
+function saveCategories(categories) {
+  localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(categories));
+}
+
 function getAllCategories(transactions) {
   const set = new Set();
   for (const t of transactions) {
@@ -78,14 +109,30 @@ function getAllCategories(transactions) {
   return Array.from(set).sort((a, b) => a.localeCompare(b, "pl"));
 }
 
-function populateCategoryDatalist(transactions) {
-  const categories = getAllCategories(transactions);
+function populateCategoryDatalist(categories) {
+  const list = Array.isArray(categories) ? categories : [];
   categoryDatalist.innerHTML = "";
-  for (const c of categories) {
+  for (const c of list) {
     const opt = document.createElement("option");
     opt.value = c;
     categoryDatalist.appendChild(opt);
   }
+}
+
+function isCategoryPresent(categories, categoryName) {
+  const needle = String(categoryName ?? "").trim().toLowerCase();
+  if (!needle) return false;
+  return categories.some((c) => String(c).trim().toLowerCase() === needle);
+}
+
+function upsertCategory(categories, categoryName) {
+  const name = String(categoryName ?? "").trim();
+  if (!name) return { categories, added: false };
+  if (isCategoryPresent(categories, name)) {
+    return { categories, added: false };
+  }
+  const next = [...categories, name].sort((a, b) => a.localeCompare(b, "pl"));
+  return { categories: next, added: true };
 }
 
 function getAvailableMonths(transactions) {
@@ -127,8 +174,8 @@ function render(transactions, selectedMonth) {
   const months = getAvailableMonths(transactions);
   fillMonthSelect(months, selectedMonth);
 
-  // Update datalist from current dataset.
-  populateCategoryDatalist(transactions);
+  // Update datalist from managed categories.
+  populateCategoryDatalist(state.categories);
 
   const { income, expenses, balance, count } = computeTotalsForMonth(transactions, monthSelect.value);
 
@@ -184,6 +231,40 @@ function render(transactions, selectedMonth) {
   }
 }
 
+function renderCategoriesList() {
+  const categories = state.categories;
+
+  categoryListEl.innerHTML = "";
+  categoriesEmptyStateEl.style.display = categories.length ? "none" : "block";
+
+  for (const c of categories) {
+    const item = document.createElement("div");
+    item.className = "categoryItem";
+
+    const name = document.createElement("span");
+    name.className = "categoryName";
+    name.textContent = c;
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "deleteCategoryBtn";
+    delBtn.textContent = "Usuń";
+    delBtn.addEventListener("click", () => {
+      const ok = window.confirm(`Usunąć kategorię "${c}"?`);
+      if (!ok) return;
+      const next = state.categories.filter((x) => x.toLowerCase() !== c.toLowerCase());
+      state.categories = next;
+      saveCategories(state.categories);
+      renderCategoriesList();
+      render(state.transactions, monthSelect.value);
+    });
+
+    item.appendChild(name);
+    item.appendChild(delBtn);
+    categoryListEl.appendChild(item);
+  }
+}
+
 function escapeHtml(str) {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -195,6 +276,7 @@ function escapeHtml(str) {
 
 let state = {
   transactions: [],
+  categories: [],
 };
 
 function init() {
@@ -202,14 +284,45 @@ function init() {
   dateInput.value = todayLocalDateString();
 
   state.transactions = loadTransactions();
+  state.categories = loadCategories();
+  if (!state.categories.length) {
+    // Fallback: if user has existing transactions but no stored categories yet.
+    state.categories = getAllCategories(state.transactions);
+    saveCategories(state.categories);
+  }
 
   const months = getAvailableMonths(state.transactions);
   const selectedMonth = months[0] || monthKeyFromDateString(todayLocalDateString());
   monthSelect.value = selectedMonth;
 
   render(state.transactions, selectedMonth);
+  renderCategoriesList();
 
   monthSelect.addEventListener("change", () => {
+    render(state.transactions, monthSelect.value);
+  });
+
+  categoryForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const raw = newCategoryInput.value;
+    const name = String(raw ?? "").trim();
+
+    if (!name) {
+      alert("Podaj nazwę kategorii.");
+      return;
+    }
+
+    if (isCategoryPresent(state.categories, name)) {
+      alert("Taka kategoria już istnieje.");
+      return;
+    }
+
+    const next = [...state.categories, name].sort((a, b) => a.localeCompare(b, "pl"));
+    state.categories = next;
+    saveCategories(state.categories);
+
+    newCategoryInput.value = "";
+    renderCategoriesList();
     render(state.transactions, monthSelect.value);
   });
 
@@ -233,6 +346,14 @@ function init() {
     if (!Number.isFinite(amount) || amount <= 0) {
       alert("Kwota musi być większa od 0.");
       return;
+    }
+
+    // Ensure managed categories include this one.
+    const up = upsertCategory(state.categories, category);
+    if (up.added) {
+      state.categories = up.categories;
+      saveCategories(state.categories);
+      renderCategoriesList();
     }
 
     const tx = {
