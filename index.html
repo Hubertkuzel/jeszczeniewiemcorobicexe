@@ -109,6 +109,27 @@
       </section>
 
       <section class="card">
+        <div class="chartHeader">
+          <h2>Udziały kategorii</h2>
+          <div class="chartControls">
+            <label class="chartModeLabel">
+              Typ
+              <select id="chartModeSelect">
+                <option value="expense" selected>Wydatki (%)</option>
+                <option value="income">Przychody (%)</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="chartGrid">
+          <canvas id="donutChart" width="320" height="240" aria-label="Wykres udziałów kategorii"></canvas>
+          <div id="chartLegend" class="chartLegend"></div>
+        </div>
+        <p id="chartEmptyState" class="emptyState">Brak danych do wykresu w wybranym miesiącu.</p>
+      </section>
+
+      <section class="card">
         <h2>Transakcje</h2>
         <div class="tableWrap">
           <table class="table">

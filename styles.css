@@ -238,6 +238,72 @@ button:hover {
   text-decoration: underline;
 }
 
+/* Wykresy kategorii */
+.chartHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chartControls .chartModeLabel select {
+  min-width: 240px;
+}
+
+.chartGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.chartLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.legendLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.legendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.legendName {
+  font-weight: 750;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legendMeta {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 @media (max-width: 760px) {
   .summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -248,6 +314,15 @@ button:hover {
   }
   .monthSelectLabel select {
     min-width: unset;
+  }
+
+  .chartGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .chartControls .chartModeLabel select {
+    min-width: unset;
+    width: 100%;
   }
 }
 

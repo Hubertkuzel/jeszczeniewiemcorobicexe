@@ -24,17 +24,36 @@ const expenseTotalEl = document.getElementById("expenseTotal");
 const balanceTotalEl = document.getElementById("balanceTotal");
 const txCountEl = document.getElementById("txCount");
 
+const chartModeSelect = document.getElementById("chartModeSelect");
+const donutChartCanvas = document.getElementById("donutChart");
+const chartLegendEl = document.getElementById("chartLegend");
+const chartEmptyStateEl = document.getElementById("chartEmptyState");
+
+/**
+ * Formatuje kwotę w PLN zgodnie z ustawieniami lokalnymi przeglądarki.
+ * @param {number} amount
+ * @returns {string}
+ */
 function formatPLN(amount) {
   const nf = new Intl.NumberFormat("pl-PL", { style: "currency", currency: CURRENCY });
   return nf.format(amount);
 }
 
+/**
+ * Zwraca klucz miesiąca w formacie `YYYY-MM` na podstawie daty `YYYY-MM-DD`.
+ * @param {string} dateStr
+ * @returns {string}
+ */
 function monthKeyFromDateString(dateStr) {
   // dateStr format: YYYY-MM-DD
   if (!dateStr || dateStr.length < 7) return "";
   return dateStr.slice(0, 7);
 }
 
+/**
+ * Zwraca aktualną datę w formacie `YYYY-MM-DD` (czas lokalny).
+ * @returns {string}
+ */
 function todayLocalDateString() {
   const now = new Date();
   const y = now.getFullYear();
@@ -43,12 +62,21 @@ function todayLocalDateString() {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * Generuje identyfikator do transakcji/kategorii.
+ * Używa `crypto.randomUUID`, a jeśli jest niedostępne — fallback na bazie czasu i losowości.
+ * @returns {string}
+ */
 function safeUUID() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
   // Fallback UUID-ish. Good enough for local storage.
   return `id_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
+/**
+ * Wczytuje transakcje z `localStorage` i wykonuje prostą walidację struktury.
+ * @returns {Array<{id: string, type: "income"|"expense", amount: number, date: string, category: string, description: string}>}
+ */
 function loadTransactions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -72,10 +100,18 @@ function loadTransactions() {
   }
 }
 
+/**
+ * Zapisuje transakcje do `localStorage`.
+ * @param {Array} transactions
+ */
 function saveTransactions(transactions) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
 }
 
+/**
+ * Wczytuje listę kategorii z `localStorage` (unikalne, znormalizowane case-insensitive).
+ * @returns {string[]}
+ */
 function loadCategories() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CATEGORIES);
@@ -97,10 +133,20 @@ function loadCategories() {
   }
 }
 
+/**
+ * Zapisuje listę kategorii do `localStorage`.
+ * @param {string[]} categories
+ */
 function saveCategories(categories) {
   localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(categories));
 }
 
+/**
+ * Zwraca unikalne kategorie wyciągnięte z transakcji.
+ * (Fallback w sytuacji, gdy kategorie nie były jeszcze zapisane osobno.)
+ * @param {Array} transactions
+ * @returns {string[]}
+ */
 function getAllCategories(transactions) {
   const set = new Set();
   for (const t of transactions) {
@@ -109,6 +155,10 @@ function getAllCategories(transactions) {
   return Array.from(set).sort((a, b) => a.localeCompare(b, "pl"));
 }
 
+/**
+ * Aktualizuje `datalist` dla pola kategorii na podstawie przekazanej listy.
+ * @param {string[]} categories
+ */
 function populateCategoryDatalist(categories) {
   const list = Array.isArray(categories) ? categories : [];
   categoryDatalist.innerHTML = "";
@@ -119,12 +169,24 @@ function populateCategoryDatalist(categories) {
   }
 }
 
+/**
+ * Sprawdza czy kategoria o danej nazwie już istnieje na liście (case-insensitive).
+ * @param {string[]} categories
+ * @param {string} categoryName
+ * @returns {boolean}
+ */
 function isCategoryPresent(categories, categoryName) {
   const needle = String(categoryName ?? "").trim().toLowerCase();
   if (!needle) return false;
   return categories.some((c) => String(c).trim().toLowerCase() === needle);
 }
 
+/**
+ * Dodaje kategorię jeśli nie istnieje (unikalność case-insensitive).
+ * @param {string[]} categories
+ * @param {string} categoryName
+ * @returns {{categories: string[], added: boolean}}
+ */
 function upsertCategory(categories, categoryName) {
   const name = String(categoryName ?? "").trim();
   if (!name) return { categories, added: false };
@@ -135,6 +197,11 @@ function upsertCategory(categories, categoryName) {
   return { categories: next, added: true };
 }
 
+/**
+ * Wyznacza listę miesięcy obecnych w transakcjach i dodaje bieżący miesiąc dla UX.
+ * @param {Array} transactions
+ * @returns {string[]} Lista `YYYY-MM`
+ */
 function getAvailableMonths(transactions) {
   const set = new Set();
   for (const t of transactions) {
@@ -146,6 +213,11 @@ function getAvailableMonths(transactions) {
   return Array.from(set).sort((a, b) => (a < b ? 1 : -1));
 }
 
+/**
+ * Renderuje opcje w selektorze miesiąca.
+ * @param {string[]} months
+ * @param {string} selectedMonth
+ */
 function fillMonthSelect(months, selectedMonth) {
   monthSelect.innerHTML = "";
   for (const mk of months) {
@@ -157,6 +229,12 @@ function fillMonthSelect(months, selectedMonth) {
   monthSelect.value = selectedMonth || months[0] || monthKeyFromDateString(todayLocalDateString());
 }
 
+/**
+ * Liczy sumy i saldo dla danego miesiąca.
+ * @param {Array} transactions
+ * @param {string} selectedMonth
+ * @returns {{income: number, expenses: number, balance: number, count: number}}
+ */
 function computeTotalsForMonth(transactions, selectedMonth) {
   let income = 0;
   let expenses = 0;
@@ -170,6 +248,194 @@ function computeTotalsForMonth(transactions, selectedMonth) {
   return { income, expenses, balance: income - expenses, count };
 }
 
+/**
+ * Wylicza sumy kwot per kategoria dla wybranego miesiąca i typu transakcji.
+ * Następnie agreguje kategorie do puli "Inne", aby wykres był czytelny.
+ * @param {Array} transactions
+ * @param {string} selectedMonth - `YYYY-MM`
+ * @param {"income"|"expense"} type
+ * @param {number} topN
+ * @returns {{total: number, segments: Array<{category: string, amount: number}>}}
+ */
+function computeCategorySharesForMonth(transactions, selectedMonth, type, topN = 6) {
+  /** @type {Map<string, number>} */
+  const totalsByCategory = new Map();
+
+  for (const t of transactions) {
+    if (monthKeyFromDateString(t.date) !== selectedMonth) continue;
+    if (t.type !== type) continue;
+
+    const category = String(t.category ?? "").trim();
+    if (!category) continue;
+
+    const prev = totalsByCategory.get(category) ?? 0;
+    totalsByCategory.set(category, prev + Number(t.amount || 0));
+  }
+
+  const total = Array.from(totalsByCategory.values()).reduce((sum, v) => sum + v, 0);
+
+  const entries = Array.from(totalsByCategory.entries()).map(([category, amount]) => ({
+    category,
+    amount,
+  }));
+
+  entries.sort((a, b) => b.amount - a.amount);
+  const nonZeroEntries = entries.filter((e) => e.amount > 0);
+
+  if (nonZeroEntries.length <= topN) {
+    return { total, segments: nonZeroEntries };
+  }
+
+  const top = nonZeroEntries.slice(0, topN);
+  const rest = nonZeroEntries.slice(topN);
+  const restSum = rest.reduce((sum, e) => sum + e.amount, 0);
+
+  if (restSum > 0) {
+    top.push({ category: "Inne", amount: restSum });
+  }
+
+  return { total, segments: top };
+}
+
+/**
+ * Formatuje wartość jako procent (0..1) w stylu polskim.
+ * @param {number} ratio - 0..1
+ * @returns {string}
+ */
+function formatPercent(ratio) {
+  const safe = Number.isFinite(ratio) ? ratio : 0;
+  const nf = new Intl.NumberFormat("pl-PL", { style: "percent", maximumFractionDigits: 1 });
+  return nf.format(safe);
+}
+
+/**
+ * Rysuje wykres donut na `canvas`.
+ * @param {HTMLCanvasElement} canvas
+ * @param {Array<{category: string, amount: number, ratio: number, color: string}>} segments
+ * @param {number} total
+ * @param {string} title
+ */
+function drawDonutChart(canvas, segments, total, title) {
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+
+  const radius = Math.min(w, h) * 0.36;
+  const thickness = Math.min(w, h) * 0.085;
+
+  // Track
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+  ctx.lineWidth = thickness;
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  let start = -Math.PI / 2;
+  const colors = segments.map((s) => s.color);
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    const sweep = seg.ratio * Math.PI * 2;
+    if (sweep <= 0) continue;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, start, start + sweep);
+    ctx.strokeStyle = colors[i] ?? "rgba(110, 168, 254, 1)";
+    ctx.lineWidth = thickness;
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    start += sweep;
+  }
+
+  // Center text
+  ctx.fillStyle = "rgba(232, 238, 252, 0.95)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.font = "700 14px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  ctx.fillText(title, cx, cy - 8);
+
+  ctx.font = "800 18px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif";
+  const totalText = total > 0 ? formatPLN(total) : "0 zł";
+  ctx.fillText(totalText, cx, cy + 16);
+}
+
+/**
+ * Renderuje wykres donut z udziałami kategorii oraz legendą.
+ * @param {Array} transactions
+ */
+function renderCategoryShareChart(transactions) {
+  if (!donutChartCanvas || !chartLegendEl || !chartEmptyStateEl) return;
+
+  const selectedMonth = monthSelect.value;
+  const mode = state.chartMode;
+  const type = mode === "income" ? "income" : "expense";
+  const title = type === "income" ? "Przychody" : "Wydatki";
+
+  const { total, segments } = computeCategorySharesForMonth(transactions, selectedMonth, type, 6);
+
+  if (!total || segments.length === 0) {
+    donutChartCanvas.getContext("2d")?.clearRect(0, 0, donutChartCanvas.width, donutChartCanvas.height);
+    chartLegendEl.innerHTML = "";
+    chartEmptyStateEl.style.display = "block";
+    return;
+  }
+
+  chartEmptyStateEl.style.display = "none";
+
+  const palette = ["#6ea8fe", "#35d07f", "#ff6b6b", "#f6c85f", "#a78bfa", "#22c55e", "#f97316", "#60a5fa"];
+
+  const computed = segments.map((s, idx) => ({
+    ...s,
+    ratio: s.amount / total,
+    color: palette[idx % palette.length],
+  }));
+
+  drawDonutChart(donutChartCanvas, computed, total, `${title} (%)`);
+
+  chartLegendEl.innerHTML = "";
+  for (const seg of computed) {
+    const item = document.createElement("div");
+    item.className = "legendItem";
+
+    const left = document.createElement("div");
+    left.className = "legendLeft";
+
+    const dot = document.createElement("span");
+    dot.className = "legendDot";
+    dot.style.background = seg.color;
+
+    const name = document.createElement("div");
+    name.className = "legendName";
+    name.textContent = seg.category;
+
+    left.appendChild(dot);
+    left.appendChild(name);
+
+    const meta = document.createElement("div");
+    meta.className = "legendMeta";
+    meta.textContent = `${formatPercent(seg.ratio)} · ${formatPLN(seg.amount)}`;
+
+    item.appendChild(left);
+    item.appendChild(meta);
+    chartLegendEl.appendChild(item);
+  }
+}
+
+/**
+ * Renderuje dane UI dla wybranego miesiąca: sumy, licznik transakcji i tabelę transakcji.
+ * @param {Array} transactions
+ * @param {string} selectedMonth
+ */
 function render(transactions, selectedMonth) {
   const months = getAvailableMonths(transactions);
   fillMonthSelect(months, selectedMonth);
@@ -229,8 +495,13 @@ function render(transactions, selectedMonth) {
 
     txBody.appendChild(tr);
   }
+
+  renderCategoryShareChart(transactions);
 }
 
+/**
+ * Renderuje listę kategorii (dodawanie/usuwanie) w sekcji "Kategorie".
+ */
 function renderCategoriesList() {
   const categories = state.categories;
 
@@ -265,6 +536,11 @@ function renderCategoriesList() {
   }
 }
 
+/**
+ * Ucieka znaki HTML wstawianych do `innerHTML` (żeby uniknąć problemów z markupiem).
+ * @param {string} str
+ * @returns {string}
+ */
 function escapeHtml(str) {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -277,8 +553,16 @@ function escapeHtml(str) {
 let state = {
   transactions: [],
   categories: [],
+  chartMode: "expense",
 };
 
+/**
+ * Inicjalizuje aplikację po załadowaniu DOM:
+ * - wczytuje transakcje i kategorie,
+ * - ustawia domyślny miesiąc,
+ * - podłącza obsługę formularzy i przycisków,
+ * - renderuje widoki.
+ */
 function init() {
   // Sensible defaults.
   dateInput.value = todayLocalDateString();
@@ -295,12 +579,23 @@ function init() {
   const selectedMonth = months[0] || monthKeyFromDateString(todayLocalDateString());
   monthSelect.value = selectedMonth;
 
+  if (chartModeSelect?.value) {
+    state.chartMode = chartModeSelect.value;
+  }
+
   render(state.transactions, selectedMonth);
   renderCategoriesList();
 
   monthSelect.addEventListener("change", () => {
     render(state.transactions, monthSelect.value);
   });
+
+  if (chartModeSelect) {
+    chartModeSelect.addEventListener("change", () => {
+      state.chartMode = chartModeSelect.value;
+      renderCategoryShareChart(state.transactions);
+    });
+  }
 
   categoryForm.addEventListener("submit", (e) => {
     e.preventDefault();
