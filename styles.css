@@ -1,0 +1,218 @@
+:root {
+  --bg: #0b1220;
+  --card: #121c31;
+  --text: #e8eefc;
+  --muted: #a9b4d0;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #6ea8fe;
+  --danger: #ff6b6b;
+  --ok: #35d07f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(1200px 800px at 10% 0%, rgba(110, 168, 254, 0.25), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.container {
+  max-width: 980px;
+  margin: 28px auto;
+  padding: 0 16px 40px;
+}
+
+.header {
+  margin-bottom: 16px;
+}
+
+.header h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+}
+
+.subtle {
+  margin: 0;
+  color: var(--muted);
+}
+
+.card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin: 14px 0;
+}
+
+.form .row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  outline: none;
+}
+
+input::placeholder {
+  color: rgba(233, 240, 255, 0.5);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+button {
+  border: 1px solid var(--border);
+  background: rgba(110, 168, 254, 0.15);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:hover {
+  border-color: rgba(110, 168, 254, 0.45);
+}
+
+.danger {
+  background: rgba(255, 107, 107, 0.14);
+}
+
+.toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.monthSelectLabel select {
+  min-width: 240px;
+}
+
+.summary {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.metric {
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.metricLabel {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.metricValue {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.metricValue.negative {
+  color: #ff9b9b;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 650;
+  font-size: 13px;
+}
+
+.txType {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  font-weight: 650;
+  font-size: 12px;
+}
+
+.txType.income {
+  border-color: rgba(53, 208, 127, 0.35);
+}
+
+.txType.expense {
+  border-color: rgba(255, 107, 107, 0.35);
+}
+
+.emptyState {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+
+.iconBtn {
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  color: var(--danger);
+}
+
+.iconBtn:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .monthSelectLabel select {
+    min-width: unset;
+  }
+}
+

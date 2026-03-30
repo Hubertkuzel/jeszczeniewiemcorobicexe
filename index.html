@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Finanse - mini menedżer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <h1>Finanse - mini menedżer</h1>
+        <p class="subtle">Dodawaj transakcje i sprawdzaj sumy za wybrany miesiąc.</p>
+      </header>
+
+      <section class="card">
+        <h2>Dodaj transakcję</h2>
+        <form id="txForm" class="form">
+          <div class="row">
+            <label>
+              Typ
+              <select id="typeInput" required>
+                <option value="expense">Wydatek</option>
+                <option value="income">Przychód</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="row">
+            <label>
+              Kwota (PLN)
+              <input id="amountInput" type="number" inputmode="decimal" step="0.01" min="0" placeholder="np. 120.50" required />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>
+              Data
+              <input id="dateInput" type="date" required />
+            </label>
+          </div>
+
+          <div class="row">
+            <label>
+              Kategoria
+              <input id="categoryInput" type="text" list="categories" placeholder="np. Jedzenie" required />
+            </label>
+            <datalist id="categories"></datalist>
+          </div>
+
+          <div class="row">
+            <label>
+              Opis (opcjonalnie)
+              <input id="descriptionInput" type="text" placeholder="np. Zakupy w sklepie" />
+            </label>
+          </div>
+
+          <div class="actions">
+            <button type="submit">Dodaj</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="toolbar">
+          <label class="monthSelectLabel">
+            Miesiąc
+            <select id="monthSelect"></select>
+          </label>
+          <button id="clearAllBtn" type="button" class="danger">Wyczyść wszystko</button>
+        </div>
+
+        <div class="summary">
+          <div class="metric">
+            <div class="metricLabel">Przychody</div>
+            <div id="incomeTotal" class="metricValue">0 zł</div>
+          </div>
+          <div class="metric">
+            <div class="metricLabel">Wydatki</div>
+            <div id="expenseTotal" class="metricValue">0 zł</div>
+          </div>
+          <div class="metric">
+            <div class="metricLabel">Saldo</div>
+            <div id="balanceTotal" class="metricValue">0 zł</div>
+          </div>
+          <div class="metric">
+            <div class="metricLabel">Transakcje (miesiąc)</div>
+            <div id="txCount" class="metricValue">0</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Transakcje</h2>
+        <div class="tableWrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Typ</th>
+                <th>Kwota</th>
+                <th>Kategoria</th>
+                <th>Opis</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+        <p id="emptyState" class="emptyState">Brak transakcji dla wybranego miesiąca.</p>
+      </section>
+    </main>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
+
